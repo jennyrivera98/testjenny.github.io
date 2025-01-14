@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuestionario EAT-26</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .was-validated .btn-group-vertical:has(input:invalid) {
+            border: 1px solid #dc3545;
+            border-radius: 4px;
+            padding: 2px;
+        }
+        
+        .was-validated .invalid-feedback {
+            display: none;
+        }
+        
+        .was-validated .btn-group-vertical:has(input:invalid) + .invalid-feedback {
+            display: block;
+        }
+
+        .btn-check:checked + .btn-outline-primary {
+            background-color: #0d6efd !important;
+            color: white !important;
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-8 col-lg-6">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h1 class="text-center mb-4">Cuestionario EAT-26</h1>
+                        <form id="questionnaireForm" class="needs-validation" novalidate>
+                            <div id="questionsContainer"></div>
+                            <div class="d-grid gap-2 mt-4">
+                                <button type="submit" class="btn btn-primary btn-lg">Enviar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para resultados -->
+    <div class="modal fade" id="resultModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Resultados EAT-26</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="scoreText" class="alert"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        const questions = [
+            "Me angustia la idea de estar demasiado gorda",
+            "Procuro no comer cuando tengo hambre",
+            "La comida es para mí una preocupación habitual",
+            "He sufrido crisis de atracones en las que tenía la sensación de no poder parar de comer",
+            "Corto mis alimentos en pequeños trozos",
+            "Conozco la cantidad de calorías de los alimentos que como",
+            "Procuro no comer alimentos que contengan muchos carbohidratos (pan, arroz, papas, etc.)",
+            "Tengo la impresión de que a los demás les gustaría verme comer más",
+            "Vomito después de comer",
+            "Me siento muy culpable después de comer",
+            "Me obsesiona el deseo de estar más delgada",
+            "Cuando hago deporte pienso sobre todo en quemar calorías",
+            "Los demás piensan que estoy demasiado delgada",
+            "Me preocupa la idea de tener zonas gordas en el cuerpo y/o de tener celulitis",
+            "Tardo más tiempo que los demás en comer",
+            "Procuro no comer alimentos que tengan azúcar",
+            "Como alimentos dietéticos",
+            "Tengo la impresión de que mi vida gira alrededor de la comida",
+            "Tengo un buen autocontrol en lo que se refiere a la comida",
+            "Tengo la sensación de que los demás me presionan para que coma más",
+            "Paso demasiado tiempo pensando en la comida",
+            "No me siento bien después de haber tomado dulces",
+            "Estoy haciendo dieta",
+            "Me gusta tener el estómago vacío",
+            "Me gusta probar platos nuevos, sabrosos y ricos en calorías",
+            "Después de las comidas tengo el impulso de vomitar"
+        ];
+
+        const options = ["Nunca", "Casi nunca", "A menudo", "Muy a menudo", "Siempre"];
+
+        function createQuestionnaire() {
+            const container = document.getElementById('questionsContainer');
+            questions.forEach((question, index) => {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'mb-4';
+                questionDiv.innerHTML = `
+                    <p class="fw-bold">${index + 1}. ${question}</p>
+                    <div class="btn-group-vertical w-100" role="group">
+                        ${options.map((option, optIndex) => `
+                            <input type="radio" 
+                                   class="btn-check" 
+                                   name="question_${index}" 
+                                   id="q${index}_${optIndex}" 
+                                   value="${option}" 
+                                   required>
+                            <label class="btn btn-outline-primary text-start" 
+                                   for="q${index}_${optIndex}">
+                                ${option}
+                            </label>
+                        `).join('')}
+                    </div>
+                    <div class="invalid-feedback">
+                        Por favor seleccione una respuesta para esta pregunta
+                    </div>
+                `;
+                container.appendChild(questionDiv);
+            });
+        }
+
+        function scoreQuestion25(response) {
+            const reverseOptions = {
+                "Nunca": 3,
+                "Casi nunca": 2,
+                "A menudo": 0,
+                "Muy a menudo": 0,
+                "Siempre": 0
+            };
+            return reverseOptions[response] || 0;
+        }
+
+        function calculateScore(formData) {
+            let totalScore = 0;
+            for (let i = 0; i < questions.length; i++) {
+                const response = formData.get(`question_${i}`);
+                if (i === 24) { // Pregunta 25 (índice 24)
+                    totalScore += scoreQuestion25(response);
+                } else {
+                    totalScore += options.indexOf(response);
+                }
+            }
+            return totalScore;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            createQuestionnaire();
+
+            const form = document.getElementById('questionnaireForm');
+            const resultModal = new bootstrap.Modal(document.getElementById('resultModal'));
+            const scoreText = document.getElementById('scoreText');
+
+            form.addEventListener('submit', (event) => {
+                event.preventDefault();
+                
+                if (!form.checkValidity()) {
+                    event.stopPropagation();
+                    form.classList.add('was-validated');
+                    
+                    const firstInvalid = form.querySelector('input:invalid').closest('.mb-4');
+                    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return;
+                }
+
+                const formData = new FormData(form);
+                const score = calculateScore(formData);
+                const resultText = score < 11 
+                    ? "No se detectan riesgos significativos." 
+                    : "Existe un posible riesgo de trastornos de la alimentación. Se recomienda consultar con un profesional.";
+
+                scoreText.textContent = `Puntuación: ${score}. ${resultText}`;
+                scoreText.className = `alert ${score < 11 ? 'alert-success' : 'alert-warning'}`;
+                
+                resultModal.show();
+            });
+        });
+    </script>
+</body>
+</html>
